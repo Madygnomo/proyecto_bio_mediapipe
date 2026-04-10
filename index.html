@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hand Tracking - MediaPipe</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <!-- Filtro SVG oculto para distorsión de la cámara -->
+  <svg style="display: none;">
+    <filter id="tv-glitch">
+      <!-- Genera ruido horizontal -->
+      <feTurbulence type="fractalNoise" baseFrequency="0.01 0.5" numOctaves="2" result="noise" />
+      <!-- Desplaza los píxeles usando el ruido -->
+      <feDisplacementMap in="SourceGraphic" in2="noise" scale="25" xChannelSelector="R" yChannelSelector="G" />
+    </filter>
+  </svg>
+  
+
+  <div id="liveView" class="videoView fullscreen">
+    <video id="webcam" autoplay playsinline muted></video>
+    <canvas class="output_canvas" id="output_canvas"></canvas>
+    
+    <!-- Banner interactivo en la parte superior -->
+    <div id="interactiveBanner" class="interactive-banner">
+      <div class="hearts-container" id="heartsContainer"></div>
+      <div class="languages-container" id="languagesContainer"></div>
+    </div>
+    
+    <div id="displayContent" class="display-content"></div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+  <script type="module" src="script.js"></script>
+</body>
+</html>
