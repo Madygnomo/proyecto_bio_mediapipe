@@ -7,29 +7,56 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <!-- Filtro SVG oculto para distorsión de la cámara -->
   <svg style="display: none;">
     <filter id="tv-glitch">
-      <!-- Genera ruido horizontal -->
       <feTurbulence type="fractalNoise" baseFrequency="0.01 0.5" numOctaves="2" result="noise" />
-      <!-- Desplaza los píxeles usando el ruido -->
       <feDisplacementMap in="SourceGraphic" in2="noise" scale="25" xChannelSelector="R" yChannelSelector="G" />
     </filter>
   </svg>
   
+  <div id="super-cursor"></div>
 
-  <div id="liveView" class="videoView fullscreen">
-    <video id="webcam" autoplay playsinline muted></video>
-    <canvas class="output_canvas" id="output_canvas"></canvas>
+  <div class="main-container">
+    <div class="background"></div>
     
-    <!-- Banner interactivo en la parte superior -->
-    <div id="interactiveBanner" class="interactive-banner">
-      <div class="hearts-container" id="heartsContainer"></div>
-      <div class="languages-container" id="languagesContainer"></div>
+    <div class="monitor-container">
+      <div class="monitor-screen">
+        <div id="video-effects-wrapper" class="effects-wrapper">
+          <video id="webcam" autoplay playsinline muted></video>
+          <canvas class="output_canvas" id="output_canvas"></canvas>
+        </div>
+      </div>
+      <div class="monitor-frame"></div>
+
+      <div id="right-display-area" style="position: absolute; right: 19%; top: 30%; z-index: 15;">
+        <img id="loop-asset" src="https://i.pinimg.com/originals/82/43/62/8243625908ae996d4071488353b8ddbd.gif" 
+             style="display: none; width: 200px; image-rendering: pixelated;">
+      </div>
     </div>
     
     <div id="displayContent" class="display-content"></div>
+
+    <div id="lang-selector-module">
+        <img src="./assets/Lang-sel.png" alt="Selector de Idioma" style="width: 100%;">
+        
+        <div id="hotspot-hongo" class="lang-hotspot" style="top: 24%; height: 12%;"></div>
+        <div id="hotspot-nya" class="lang-hotspot" style="top: 40%; height: 12%;"></div>
+        <div id="hotspot-byte-an" class="lang-hotspot" style="top: 56%; height: 12%;"></div>
+        <div id="hotspot-aqua" class="lang-hotspot" style="top: 72%; height: 12%;"></div>
+
+        <img src="./assets/little_gnome.png" id="gnome-img" class="selection-img" alt="Gnome">
+        <img src="./assets/Gato.gif" id="gato-img" class="selection-img" alt="Gato">
+        <img src="./assets/5owee3a.gif" id="byte-img" class="selection-img" alt="Byte-an">
+    </div>
+
+    <div id="content-area">
+        <h1>Documento Original</h1>
+        <p id="document-text">Loading...</p>
+    </div>
+
   </div>
+
+  <canvas id="ui_canvas"></canvas>
 
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
   <script type="module" src="script.js"></script>

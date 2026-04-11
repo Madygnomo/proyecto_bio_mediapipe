@@ -7,75 +7,78 @@ const video = document.getElementById("webcam");
 const canvasElement = document.getElementById("output_canvas");
 const canvasCtx = canvasElement.getContext("2d");
 const displayContent = document.getElementById("displayContent");
-const heartsContainer = document.getElementById("heartsContainer");
-const languagesContainer = document.getElementById("languagesContainer");
+const uiCanvas = document.getElementById("ui_canvas");
+const uiCtx = uiCanvas.getContext("2d");
+
 
 let handLandmarker = undefined;
 let runningMode = "VIDEO";
 let webcamRunning = false;
-let currentLanguage = "es";
-let isPurpleEffectActive = false;
-let isTvEffectActive = false;
+let isPurpleEffectActive = false; 
+let isTvEffectActive = false;     
+let isVhsEffectActive = false;    
+let lastClickTime = 0;
 
-// Configuración de corazones con efectos
-const hearts = [
-  { emoji: "❤️", color: "#FF6B6B", effect: "wiggle" },
-  { emoji: "💚", color: "#51CF66", effect: "glitch" },
-  { emoji: "💛", color: "#FFD93D", effect: "wiggle" },
-  { emoji: "💜", color: "#A569BD", effect: "glitch" },
-  { emoji: "💙", color: "#4ECDC4", effect: "wiggle" },
-  { emoji: "🧡", color: "#FF9F43", effect: "glitch" }
-];
+const baseDocumentText = "This Indenture made the thirteenth day of December One Thousand and eight hundred and thirty eight... system error detected... network breached.";
+let currentTextMode = 'normal';
 
-// Configuración de idiomas
-const languages = [
-  { code: "es", flag: "🇪🇸", name: "Spanish" },
-  { code: "en", flag: "🇬🇧", name: "English" },
-  { code: "fr", flag: "🇫🇷", name: "French" },
-  { code: "ja", flag: "🇯🇵", name: "Japanese" }
-];
-
-let heartElements = [];
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('document-text').textContent = baseDocumentText;
+});
 
 // Cargar imagen personalizada para el dedo índice
 const customFingerImage = new Image();
-customFingerImage.src = './assets/Cursor_Key.png'; // Cambia el nombre si es diferente
+customFingerImage.src = './assets/Cursor_Key.png';
 
-// Botones interactivos - AQUÍ DEFINES TUS BOTONES
+// Botones interactivos
+// MODIFICADO: Recuperar el botón del gato
 const interactiveButtons = [
   {
-    x: 50,
-    y: 100,
-    width: 150,
-    height: 150,
-    text: "Botón 1",
-    color: "#FF6B6B",
-    link: "https://64.media.tumblr.com/6189061e94a7467352a4e2d93b150851/1a6cf5d7e1b8b0ba-99/s2048x3072/dac3d55b8a8ea3913cbdedb8c18a76cffce9ce0e.gif",
-    image: "./assets/boton1.png"
+    id: 'cat-polaroid',
+    x: 170, 
+    y: 30, 
+    width: 100, 
+    height: 100, 
+    image: './assets/boton1.png',
+    action: 'ACTIVATE_LOOP'
   },
-  {
-    x: 250,
-    y: 100,
-    width: 150,
-    height: 150,
-    text: "Botón 2",
-    color: "#4ECDC4",
-    link: "https://ejemplo2.com",
-    image: "./assets/boton2.png"
+  { 
+    id: 'cd-player',
+    x: 50, // Ajustado a la mitad del costado derecho
+    y: 360, // Ajustado a la mitad del costado derecho
+    width: 80, 
+    height: 80, 
+    image: './assets/boton3.png', 
+    action: 'RESTART_MIX' // Acción para el CD
   },
-  {
-    x: 450,
-    y: 100,
-    width: 150,
-    height: 150,
-    text: "Botón 3",
-    color: "#95E1D3",
-    link: "https://youtu.be/3XFXPIMdj2Y",
-    image: "./assets/boton3.png"
+  { // NUEVO: Botón del teléfono para efecto VHS
+    id: 'kurodenwa-m1',
+    x: 50, // Posición de ejemplo (ajusta según tu diseño)
+    y: 5, // Posición de ejemplo (ajusta según tu diseño)
+    width: 88,
+    height: 114,
+    image: './assets/kurodenwa-m1.gif', // Asegúrate de tener este asset
+    action: 'TOGGLE_VHS_EFFECT'
+  },
+  { // BOTON OJO
+    id: 'OJO',
+    x: 50, // Posición de ejemplo (ajusta según tu diseño)
+    y: 140, // Posición de ejemplo (ajusta según tu diseño)
+    width: 75,
+    height: 75,
+    image: './assets/OJO.png', // Asegúrate de tener este asset
+    action: 'TOGGLE_PURPLE_EFFECT' // Eye handles Purple
+  },
+  { // BOTON CORAZON
+    id: 'boton2',
+    x: 50, // Posición de ejemplo (ajusta según tu diseño)
+    y: 240, // Posición de ejemplo (ajusta según tu diseño)
+    width: 80,
+    height: 80,
+    image: './assets/boton2.png', // Asegúrate de tener este asset
+    action: 'TOGGLE_TV_EFFECT' // Heart handles TV Glitch
   }
 ];
-
-let lastClickTime = 0;
 
 // Precargar imágenes de los botones
 const buttonImages = {};
@@ -97,117 +100,139 @@ const HAND_CONNECTIONS = [
 ];
 
 // Función para dibujar los botones interactivos
-function drawButtons(ctx, videoWidth, videoHeight) {
+function drawButtons(ctx, screenWidth, screenHeight) {
   interactiveButtons.forEach(btn => {
-    // Adaptar tamaño según resolución del video
     const scaledBtn = {
-      x: (btn.x / 640) * videoWidth,
-      y: (btn.y / 480) * videoHeight,
-      width: (btn.width / 640) * videoWidth,
-      height: (btn.height / 480) * videoHeight
+      x: (btn.x / 640) * screenWidth,
+      y: (btn.y / 480) * screenHeight,
+      width: (btn.width / 640) * screenWidth,
+      height: (btn.height / 480) * screenHeight
     };
 
-    // Dibujar imagen precargada
     if (btn.image && buttonImages[btn.image]) {
       ctx.drawImage(buttonImages[btn.image], scaledBtn.x, scaledBtn.y, scaledBtn.width, scaledBtn.height);
     }
-
   });
 }
 
-// Función para detectar si el dedo índice está tocando un botón
-function checkButtonCollision(landmarks, videoWidth, videoHeight) {
-  // Punto 8 es la punta del dedo índice
+// --- MODIFIED: Cursor Logic ---
+function updateDOMCursor(landmarks) {
   const indexFingerTip = landmarks[8];
-
   if (!indexFingerTip) return;
 
-  // Convertir coordenadas normalizadas a píxeles
-  const fingerX = indexFingerTip.x * videoWidth;
-  const fingerY = indexFingerTip.y * videoHeight;
+  const cursor = document.getElementById('super-cursor');
+  if (!cursor) return;
 
-  // Coordenadas de pantalla (ajustadas por el modo espejo) para los elementos del DOM
-  const screenX = (1 - indexFingerTip.x) * window.innerWidth;
-  const screenY = indexFingerTip.y * window.innerHeight;
+  // Invertimos X para alinear el DOM con el modo espejo de la cámara
+  const x = (1 - indexFingerTip.x) * window.innerWidth;
+  const y = indexFingerTip.y * window.innerHeight;
+  
+  // Apply coordinates to the HTML element
+  cursor.style.left = `${x}px`;
+  cursor.style.top = `${y}px`;
+}
 
-  interactiveButtons.forEach((btn, index) => {
-    const scaledBtn = {
-      x: (btn.x / 640) * videoWidth,
-      y: (btn.y / 480) * videoHeight,
-      width: (btn.width / 640) * videoWidth,
-      height: (btn.height / 480) * videoHeight
-    };
+// --- NEW: HTML Collision Detection ---
+function checkHTMLCollision(fingerX, fingerY) {
+  const hotspots = [
+      { id: 'hotspot-hongo', action: 'MODE_HONGO' },
+      { id: 'hotspot-nya', action: 'MODE_NYA' },
+      { id: 'hotspot-byte-an', action: 'MODE_BYTE' },
+      { id: 'hotspot-aqua', action: 'MODE_AQUA' }
+  ];
 
-    // Verificar colisión
+  const now = Date.now();
+  if (now - lastClickTime < 1000) return; // Debounce clicks
+
+  hotspots.forEach(spot => {
+      const el = document.getElementById(spot.id);
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      
+      if (fingerX > rect.left && fingerX < rect.right && fingerY > rect.top && fingerY < rect.bottom) {
+          lastClickTime = now;
+          handleInteraction(spot.action);
+          
+          // Optional: Visual feedback on the canvas for clicking HTML elements
+          showClickFeedback({ x: rect.left, y: rect.top, width: rect.width, height: rect.height }, uiCtx);
+      }
+  });
+}
+
+// Función para detectar colisiones
+function checkButtonCollision(landmarks, screenWidth, screenHeight) {
+  const indexFingerTip = landmarks[8];
+  if (!indexFingerTip) return;
+
+  const fingerX = (1 - indexFingerTip.x) * screenWidth; // Invertimos X de verdad para el modo espejo
+  const fingerY = indexFingerTip.y * screenHeight;
+
+  interactiveButtons.forEach((btn) => {
+    let scaledBtn;
+
+    if (btn.isAlert) {
+      // Para las alertas, las coordenadas ya son absolutas de la pantalla, no necesitan escalado
+      scaledBtn = {
+        x: btn.x,
+        y: btn.y,
+        width: btn.width,
+        height: btn.height
+      };
+    } else {
+      // Para los botones normales, escalamos desde la resolución base (640x480)
+      scaledBtn = {
+        x: (btn.x / 640) * screenWidth,
+        y: (btn.y / 480) * screenHeight,
+        width: (btn.width / 640) * screenWidth,
+        height: (btn.height / 480) * screenHeight
+      };
+    }
+
     if (
       fingerX > scaledBtn.x &&
       fingerX < scaledBtn.x + scaledBtn.width &&
       fingerY > scaledBtn.y &&
       fingerY < scaledBtn.y + scaledBtn.height
     ) {
-      // Evitar clicks muy rápidos (debounce)
       const now = Date.now();
       if (now - lastClickTime > 1000) {
         lastClickTime = now;
-        console.log(`Botón ${index + 1} activado: ${btn.text}`);
-        
-        // Mostrar contenido en pantalla
-        if (btn.link) {
-          displayButtonContent(btn.link);
+        if (btn.isAlert) {
+            // Si es una alerta, la cerramos
+            // Efecto visual: la ventana se cierra al "tocarla"
+            btn.element.style.transition = "transform 0.2s ease-out"; // Transición suave
+            btn.element.style.transform = "scale(0.9)";
+            setTimeout(() => {
+                btn.element.remove();
+                // Limpiar el array para que no siga detectando algo que ya no existe
+                const idx = interactiveButtons.indexOf(btn);
+                if (idx > -1) {
+                    interactiveButtons.splice(idx, 1);
+                }
+            }, 200);
+        } else {
+            // Si tiene una acción, la ejecutamos
+            if (btn.action) { 
+              handleInteraction(btn.action);
+            }
+            // Si tiene un link, mostramos el contenido
+            if (btn.link) {
+              displayButtonContent(btn.link);
+            }
+            showClickFeedback(scaledBtn, uiCtx); // Mostramos feedback visual
         }
-        
-        // Feedback visual
-        showClickFeedback(scaledBtn);
       }
     }
   });
 
-  // Detectar colisión con los corazones del banner HTML
-  heartElements.forEach((heartEl, index) => {
-    const rect = heartEl.getBoundingClientRect();
-    // Usamos un pequeño margen (+/- 15px) para que el área táctil sea más perdonable
-    if (
-      screenX > rect.left - 15 &&
-      screenX < rect.right + 15 &&
-      screenY > rect.top - 15 &&
-      screenY < rect.bottom + 15
-    ) {
-      const now = Date.now();
-      if (now - lastClickTime > 1000) {
-        lastClickTime = now;
-        heartEl.click(); // Disparamos el click real para ejecutar su animación y efecto
-      }
-    }
-  });
+  // NEW: Check HTML Hotspots
+  checkHTMLCollision(fingerX, fingerY);
 }
 
-// Función para mostrar el contenido (imagen/GIF) en pantalla
+// Función para mostrar contenido
 function displayButtonContent(url) {
   displayContent.innerHTML = '';
   
-  // Verificar si es un enlace de YouTube para reproducir solo el audio
-  if (url.includes('youtube.com') || url.includes('youtu.be')) {
-    let videoId = '';
-    if (url.includes('youtu.be/')) {
-      videoId = url.split('youtu.be/')[1].split('?')[0];
-    } else if (url.includes('youtube.com/watch?v=')) {
-      videoId = url.split('v=')[1].split('&')[0];
-    }
-
-    if (videoId) {
-      const iframe = document.createElement('iframe');
-      // Autoplay activado, controles ocultos
-      iframe.src = `https://www.youtube.com/embed/${videoId}?autoplay=1&controls=0`;
-      iframe.allow = "autoplay";
-      iframe.style.display = "none"; // Oculto para que solo se escuche el audio
-      
-      displayContent.appendChild(iframe);
-      displayContent.style.display = 'block';
-      return; // Terminamos aquí para que el audio siga reproduciéndose y no se oculte a los 5s
-    }
-  }
-
-  // Determinar si es una imagen o GIF
   const ext = url.toLowerCase().split('.').pop();
   
   if (['gif', 'jpg', 'jpeg', 'png', 'webp'].includes(ext)) {
@@ -217,23 +242,16 @@ function displayButtonContent(url) {
       displayContent.appendChild(img);
       displayContent.style.display = 'block';
     };
-    img.onerror = () => {
-      console.error('Error cargando imagen:', url);
-    };
   }
   
-  // Auto-ocultar después de 5 segundos
   setTimeout(() => {
     displayContent.style.display = 'none';
   }, 5000);
 }
 
-// Mostrar feedback visual cuando se activa un botón
-function showClickFeedback(btn) {
-  const ctx = canvasElement.getContext("2d");
-  
-  // Dibujar un círculo de confirmación
-  ctx.strokeStyle = "#FFD700";
+// Feedback visual
+function showClickFeedback(btn, ctx) { // Acepta el contexto como argumento
+  ctx.strokeStyle = "#FFD700"; // Color del feedback
   ctx.lineWidth = 5;
   ctx.globalAlpha = 0.7;
   
@@ -246,92 +264,17 @@ function showClickFeedback(btn) {
   ctx.globalAlpha = 1.0;
 }
 
-// Inicializar banner interactivo
-function initializeBanner() {
-  // Crear corazones
-  hearts.forEach((heart, index) => {
-    const heartEl = document.createElement('div');
-    heartEl.className = `heart ${heart.effect}`;
-    heartEl.textContent = heart.emoji;
-    heartEl.style.animationDelay = `${index * 0.1}s`;
-    heartEl.style.cursor = 'pointer';
-    
-    heartEl.addEventListener('click', () => {
-      playHeartAnimation(heartEl, heart.effect);
-      
-      // Si se toca el primer corazón (índice 0), aplicar/quitar efecto de shader a la cámara
-      if (index === 0) {
-        isPurpleEffectActive = !isPurpleEffectActive;
-        isTvEffectActive = false;
-        video.classList.remove('tv-effect');
-        
-        // Añadimos una transición suave para que el cambio no sea brusco
-        video.style.transition = "filter 0.5s ease";
-        video.style.filter = isPurpleEffectActive 
-          ? "sepia(100%) hue-rotate(250deg) saturate(200%) brightness(0.9)" 
-          : "none";
-      }
-      
-      // Si se toca el segundo corazón (índice 1), aplicar distorsión TV Glitch
-      if (index === 1) {
-        isTvEffectActive = !isTvEffectActive;
-        isPurpleEffectActive = false; // Desactivar el morado si estaba puesto
-        
-        if (isTvEffectActive) {
-          video.style.transition = "none"; // El ruido no debe tener transición suave
-          // Aplicamos el SVG que creamos y lo hacemos blanco y negro con mucho contraste
-          video.style.filter = "url(#tv-glitch) grayscale(80%) contrast(200%) brightness(1.2)";
-          video.classList.add('tv-effect');
-        } else {
-          video.style.filter = "none";
-          video.classList.remove('tv-effect');
-        }
-      }
-    });
-    
-    heartsContainer.appendChild(heartEl);
-    heartElements.push(heartEl);
-  });
-  
-  // Crear botones de idiomas
-  languages.forEach(lang => {
-    const btn = document.createElement('button');
-    btn.className = `language-btn ${lang.code === currentLanguage ? 'active' : ''}`;
-    btn.textContent = `${lang.flag} ${lang.name}`;
-    
-    btn.addEventListener('click', () => {
-      setLanguage(lang.code);
-    });
-    
-    languagesContainer.appendChild(btn);
-  });
-}
+// NUEVO: Funciones para gestionar los efectos visuales de la cámara
 
-// Reproducir animación en corazón
-function playHeartAnimation(element, effect) {
-  element.style.animation = 'none';
-  setTimeout(() => {
-    element.style.animation = '';
-    element.classList.remove('wiggle', 'glitch', 'reveal');
-    void element.offsetWidth; // Trigger reflow
-    element.classList.add(effect);
-  }, 10);
-}
-
-// Cambiar idioma
-function setLanguage(code) {
-  currentLanguage = code;
-  
-  // Actualizar botones activos
-  document.querySelectorAll('.language-btn').forEach((btn, index) => {
-    if (languages[index].code === code) {
-      btn.classList.add('active');
-    } else {
-      btn.classList.remove('active');
-    }
-  });
-  
-  console.log(`Idioma cambiado a: ${code}`);
+// NEW: Clean State Reset
+function clearAllVideoEffects() {
+  const wrapper = document.getElementById('video-effects-wrapper');
+  if (wrapper) {
+    wrapper.className = 'effects-wrapper'; // Resets to base class, stripping effects
+  }
+  isPurpleEffectActive = false;
+  isTvEffectActive = false;
+  isVhsEffectActive = false;
 }
 
 // Crear HandLandmarker
@@ -348,14 +291,12 @@ const createHandLandmarker = async () => {
     numHands: 2
   });
   console.log("HandLandmarker cargado correctamente");
-  initializeBanner(); // Inicializar banner
   enableCam();
 };
 
-// Inicializar
 createHandLandmarker();
 
-// Enable the live webcam view and start detection
+// Enable webcam
 function enableCam() {
   if (!handLandmarker) {
     console.log("Wait! handLandmarker not loaded yet.");
@@ -363,7 +304,6 @@ function enableCam() {
   }
 
   webcamRunning = true;
-
   const constraints = { video: true };
 
   navigator.mediaDevices.getUserMedia(constraints).then((stream) => {
@@ -374,31 +314,18 @@ function enableCam() {
   });
 }
 
+function resizeCanvas() {
+  uiCanvas.width = window.innerWidth; // El uiCanvas ocupa toda la pantalla
+  uiCanvas.height = window.innerHeight; // El uiCanvas ocupa toda la pantalla
+}
+window.addEventListener('resize', resizeCanvas);
+resizeCanvas(); // Llamado inicial
+
 let lastVideoTime = -1;
 let results = undefined;
-
-// Función para dibujar landmarks personalizados (con PNG en el dedo índice)
-function drawCustomLandmarks(ctx, landmarks) {
-  // Índices importantes:
-  // 8 = punta del dedo índice
-  
-  landmarks.forEach((landmark, index) => {
-    // Convertir coordenadas normalizadas a píxeles
-    const x = landmark.x * canvasElement.width;
-    const y = landmark.y * canvasElement.height;
-    
-    // Solo dibujar el cursor en el dedo índice (punto 8)
-    if (index === 8 && customFingerImage.complete) {
-      const size = 30; // Tamaño de la imagen
-      ctx.drawImage(customFingerImage, x - size / 2, y - size / 2, size, size);
-    }
-    // No dibujar los otros landmarks - solo el cursor
-  });
-}
+let animationFrameId; // Para controlar el requestAnimationFrame
 
 async function predictWebcam() {
-  canvasElement.style.width = video.videoWidth;
-  canvasElement.style.height = video.videoHeight;
   canvasElement.width = video.videoWidth;
   canvasElement.height = video.videoHeight;
   
@@ -408,30 +335,210 @@ async function predictWebcam() {
     results = handLandmarker.detectForVideo(video, startTimeMs);
   }
 
-  canvasCtx.save();
-  canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
+  // Limpiamos ambos canvas
+  canvasCtx.save(); // Guarda el estado actual del canvas
+  canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height); // Limpia el canvas
+  
+  uiCtx.clearRect(0, 0, uiCanvas.width, uiCanvas.height);
 
   if (results.landmarks) {
     for (const landmarks of results.landmarks) {
+      // 1. Dibujamos las líneas verdes en la pantallita del PC
       drawConnectors(canvasCtx, landmarks, HAND_CONNECTIONS, {
         color: "#00FF00",
         lineWidth: 5
       });
       
-      // Dibujar landmarks normales pero reemplazar el dedo índice por custom PNG
-      drawCustomLandmarks(canvasCtx, landmarks);
-      
-      // Detectar colisiones con botones
-      checkButtonCollision(landmarks, canvasElement.width, canvasElement.height);
+      // 2. Actualizamos el cursor DOM y validamos colisiones en pantalla completa
+      updateDOMCursor(landmarks);
+      checkButtonCollision(landmarks, uiCanvas.width, uiCanvas.height);
     }
   }
 
-  // Dibujar botones interactivos
-  drawButtons(canvasCtx, canvasElement.width, canvasElement.height);
-
+  // Dibujamos los botones en el canvas de interfaz global
+  drawButtons(uiCtx, uiCanvas.width, uiCanvas.height);
   canvasCtx.restore();
 
   if (webcamRunning === true) {
     window.requestAnimationFrame(predictWebcam);
   }
 }
+
+// Array de mensajes personalizados para tu narrativa
+const alertMessages = [
+  "To take back your mind, you have to humble your heart.",
+  "System failure: Too much nostalgia detected.",
+  "Error: Reality.exe is not responding.",
+  "Lions & lizards & lies are watching you."
+];
+
+function spawnAlert() {
+  const alert = document.createElement('div');
+  alert.className = 'win98-alert';
+  
+  // Posición aleatoria
+  // Aseguramos que la alerta no se salga de los límites de la ventana
+  const alertWidth = 300; // Ancho aproximado de la alerta
+  const alertHeight = 200; // Alto aproximado de la alerta
+  const posX = Math.random() * (window.innerWidth - alertWidth);
+  const posY = Math.random() * (window.innerHeight - alertHeight);
+  alert.style.left = `${posX}px`;
+  alert.style.top = `${posY}px`;
+
+  const message = alertMessages[Math.floor(Math.random() * alertMessages.length)];
+
+  alert.innerHTML = `
+    <div class="win98-header">
+      <span>lions & lizards & lies</span>
+      <button onclick="this.parentElement.parentElement.remove()" style="width:16px; height:14px; font-size:9px;">X</button>
+    </div>
+    <div class="win98-content">
+      <img src="./assets/warning_icon.png" width="32">
+      <p>${message}</p>
+    </div>
+    <div style="text-align: center; padding-bottom: 10px;">
+       <button onclick="this.parentElement.parentElement.remove()" style="padding: 2px 20px; border: 1px solid black;">OK</button>
+    </div>
+  `;
+
+  document.body.appendChild(alert);
+
+  // Obtener las dimensiones reales después de insertarla
+  // Es importante hacerlo DESPUÉS de que el elemento esté en el DOM
+  const rect = alert.getBoundingClientRect();
+  
+  // Añadir la alerta a la lista de colisiones
+  const alertBtn = {
+    id: `alert-${Date.now()}`, // ID único para la alerta
+    x: rect.left,
+    y: rect.top,
+    width: rect.width,
+    height: rect.height,
+    isAlert: true, // Marcador para identificar que es una alerta
+    element: alert // Guardamos la referencia al div para poder manipularlo
+  };
+  interactiveButtons.push(alertBtn);
+}
+
+// Función para manejar interacciones específicas de botones
+function handleInteraction(action) {
+  const contentText = document.getElementById('document-text');
+  const contentArea = document.getElementById('content-area');
+  const gnome = document.getElementById('gnome-img');
+  const gato = document.getElementById('gato-img');
+  const byte = document.getElementById('byte-img');
+
+  const resetEffects = () => {
+      if (gnome) gnome.style.display = 'none';
+      if (gato) gato.style.display = 'none';
+      if (byte) byte.style.display = 'none';
+      if (contentArea) contentArea.classList.remove('mode-hongo', 'mode-nya', 'mode-ascii', 'mode-scrambled');
+      if (contentText) contentText.textContent = baseDocumentText;
+  };
+
+  const wrapper = document.getElementById('video-effects-wrapper');
+
+  if (action === 'ACTIVATE_LOOP') {
+    const loopImg = document.getElementById('loop-asset');
+    if (loopImg) {
+      loopImg.style.display = 'block'; // Aparece y se queda ahí para siempre
+      console.log("Manifesto cargado: El hilo de la existencia está en loop.");
+    }
+  } else if (action === 'RESTART_MIX') { // Esta acción ya no hará nada sin el reproductor de YouTube
+    console.log("Acción 'RESTART_MIX' detectada, pero el reproductor de YouTube ha sido eliminado.");
+  } else if (action === 'TOGGLE_VHS_EFFECT') {
+      if (isVhsEffectActive) { 
+          clearAllVideoEffects(); 
+      } else { 
+          clearAllVideoEffects(); 
+          if (wrapper) wrapper.classList.add('vhs-effect'); 
+          isVhsEffectActive = true; 
+      }
+  } else if (action === 'TOGGLE_PURPLE_EFFECT') {
+      if (isPurpleEffectActive) { 
+          clearAllVideoEffects(); 
+      } else { 
+          clearAllVideoEffects(); 
+          if (wrapper) wrapper.classList.add('purple-effect'); 
+          isPurpleEffectActive = true; 
+      }
+  } else if (action === 'TOGGLE_TV_EFFECT') {
+      if (isTvEffectActive) { 
+          clearAllVideoEffects(); 
+      } else { 
+          clearAllVideoEffects(); 
+          if (wrapper) wrapper.classList.add('tv-effect'); 
+          isTvEffectActive = true; 
+      }
+  } else if (action === 'MODE_HONGO') {
+      if (currentTextMode === 'hongo') { resetEffects(); currentTextMode = 'normal'; return; }
+      resetEffects();
+      if (gnome) gnome.style.display = 'block';
+      if (contentArea) contentArea.classList.add('mode-hongo');
+      const emojiMap = {'a': '🍄', 'e': '🌲', 'i': '🧔', 'o': '🍄', 'u': '🌲'};
+      if (contentText) contentText.textContent = baseDocumentText.split('').map(char => emojiMap[char.toLowerCase()] || char).join('');
+      currentTextMode = 'hongo';
+  } else if (action === 'MODE_NYA') {
+      if (currentTextMode === 'nya') { resetEffects(); currentTextMode = 'normal'; return; }
+      resetEffects();
+      if (gato) gato.style.display = 'block';
+      if (contentArea) contentArea.classList.add('mode-nya');
+      if (contentText) contentText.textContent = Array(30).fill('NYAAAAS').join(' ');
+      currentTextMode = 'nya';
+  } else if (action === 'MODE_BYTE') {
+      if (currentTextMode === 'byte') { resetEffects(); currentTextMode = 'normal'; return; }
+      resetEffects();
+      if (byte) byte.style.display = 'block';
+      if (contentArea) contentArea.classList.add('mode-scrambled');
+      const words = baseDocumentText.split(' ');
+      if (contentText) contentText.textContent = words.map(word => word.split('').sort(() => 0.5 - Math.random()).join('')).join(' ');
+      currentTextMode = 'byte';
+  } else if (action === 'MODE_AQUA') {
+      if (currentTextMode === 'aqua') { resetEffects(); currentTextMode = 'normal'; return; }
+      resetEffects();
+      if (contentArea) contentArea.classList.add('mode-ascii');
+      const asciiChars = "+-@#%~><./;[]*^&{}";
+      if (contentText) contentText.textContent = baseDocumentText.split('').map(() => asciiChars[Math.floor(Math.random() * asciiChars.length)]).join('');
+      currentTextMode = 'aqua';
+  }
+}
+
+// Lógica para inicializar los corazones y añadir sus event listeners
+// Esta función debería ser llamada una vez, por ejemplo, en DOMContentLoaded
+function setupHeartListeners() {
+  heartElements.forEach((heartEl, index) => {
+    // Asegúrate de que 'hearts' tenga elementos correspondientes a 'heartElements'
+    const heart = hearts[index];
+    if (!heart) return; // Evitar errores si hearts no está sincronizado con heartElements
+
+    heartEl.addEventListener('click', () => {
+      playHeartAnimation(heartEl, heart.effect);
+
+      if (index === 0) { // Purple effect
+        if (isPurpleEffectActive) { clearAllVideoEffects(); } else { applyEffect('purple'); }
+      }
+
+      if (index === 1) { // TV Glitch effect
+        if (isTvEffectActive) { clearAllVideoEffects(); } else { applyEffect('tv-glitch'); }
+      }
+      // Añadir más efectos para otros corazones si es necesario
+    });
+  });
+}
+
+// Llama a esta función cuando el DOM esté completamente cargado
+// document.addEventListener('DOMContentLoaded', setupHeartListeners); // Descomentar cuando heartElements esté poblado
+
+// Intervalo aleatorio entre 15 y 30 segundos
+function startAlertTimer() {
+  const minInterval = 15000; // 15 segundos
+  const maxInterval = 30000; // 30 segundos
+  const nextAlertIn = Math.random() * (maxInterval - minInterval) + minInterval;
+  setTimeout(() => {
+    spawnAlert();
+    startAlertTimer(); // Reinicia el ciclo
+  }, nextAlertIn);
+}
+
+// Iniciar al cargar el script
+startAlertTimer();
