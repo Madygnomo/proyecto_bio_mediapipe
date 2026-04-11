@@ -35,7 +35,7 @@ customFingerImage.src = './assets/Cursor_Key.png';
 const interactiveButtons = [
   {
     id: 'cat-polaroid',
-    x: 170, 
+    x: 370, // 640 (ancho total) - 170 - 100 (ancho)
     y: 30, 
     width: 100, 
     height: 100, 
@@ -44,7 +44,7 @@ const interactiveButtons = [
   },
   { 
     id: 'cd-player',
-    x: 50, // Ajustado a la mitad del costado derecho
+    x: 510, // Movido a coordenadas reales del lado derecho
     y: 360, // Ajustado a la mitad del costado derecho
     width: 80, 
     height: 80, 
@@ -53,7 +53,7 @@ const interactiveButtons = [
   },
   { // NUEVO: Botón del teléfono para efecto VHS
     id: 'kurodenwa-m1',
-    x: 50, // Posición de ejemplo (ajusta según tu diseño)
+    x: 502, // Movido al lado derecho
     y: 5, // Posición de ejemplo (ajusta según tu diseño)
     width: 88,
     height: 114,
@@ -62,7 +62,7 @@ const interactiveButtons = [
   },
   { // BOTON OJO
     id: 'OJO',
-    x: 50, // Posición de ejemplo (ajusta según tu diseño)
+    x: 515, // Movido al lado derecho
     y: 140, // Posición de ejemplo (ajusta según tu diseño)
     width: 75,
     height: 75,
@@ -71,7 +71,7 @@ const interactiveButtons = [
   },
   { // BOTON CORAZON
     id: 'boton2',
-    x: 50, // Posición de ejemplo (ajusta según tu diseño)
+    x: 510, // Movido al lado derecho
     y: 240, // Posición de ejemplo (ajusta según tu diseño)
     width: 80,
     height: 80,
