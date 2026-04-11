@@ -139,7 +139,7 @@ Las contribuciones son bienvenidas. Por favor:
 
 ## 📧 Contacto
 
-Para preguntas o sugerencias, contáctame en [tu-email@ejemplo.com]
+Para preguntas o sugerencias, contáctame en [camiloadams@madygnome.com.co]
 
 ---
 
