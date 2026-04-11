@@ -159,23 +159,70 @@ canvas {
     z-index: 1000;
 }
 
-/* 2. Purple Effect */
-.purple-effect {
-    filter: sepia(100%) hue-rotate(250deg) saturate(200%) brightness(0.9);
+/* 2. NUEVO Efecto de Contraste Agresivo (Reemplaza a .purple-effect) */
+.aggressive-contrast-effect {
+    /* Filtros intensos para "romper" sombras y luces */
+    filter: saturate(4) contrast(3) brightness(0.6) hue-rotate(-15deg);
+}
+
+/* Aplicar scanlines al WRAPPER usando ::after para que esté encima */
+.aggressive-contrast-effect::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: 
+        /* Líneas de escaneo negras horizontales */
+        linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.3) 50%), 
+        /* Puntos de fósforo RGB sutiles verticales */
+        linear-gradient(90deg, rgba(255, 0, 0, 0.05), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.05));
+    background-size: 100% 4px, 3px 100%;
+    pointer-events: none; /* Dejar pasar los clics al canvas */
+    z-index: 1000;
+    mix-blend-mode: overlay;
 }
 
 /* 3. TV Glitch Effect */
-@keyframes tv-jitter {
-  0%, 100% { transform: scaleX(-1) translate(0, 0) skew(0deg); }
-  20% { transform: scaleX(-1) translate(-3px, 1px) skew(2deg); }
-  40% { transform: scaleX(-1) translate(3px, -2px) skew(-2deg); }
-  60% { transform: scaleX(-1) translate(-2px, 2px) skew(1deg); }
-  80% { transform: scaleX(-1) translate(2px, -1px) skew(-1deg); }
+/* --- ADVANCED SHADER-STYLE TV GLITCH --- */
+
+@keyframes severe-jitter {
+  0%   { transform: translate(0, 0) skew(0deg); filter: url(#tv-glitch-advanced) grayscale(30%) contrast(150%); }
+  10%  { transform: translate(-4px, 2px) skew(1deg); filter: url(#tv-glitch-advanced) grayscale(30%) contrast(200%) brightness(1.5); }
+  20%  { transform: translate(4px, -2px) skew(-2deg); }
+  30%  { transform: translate(-2px, 4px) skew(1deg); }
+  40%  { transform: translate(2px, -4px) skew(-1deg); filter: url(#tv-glitch-advanced) grayscale(40%) contrast(180%) brightness(0.9); }
+  50%  { transform: translate(-5px, -2px) skew(2deg); }
+  60%  { transform: translate(5px, 2px) skew(-1deg); filter: url(#tv-glitch-advanced) grayscale(20%) contrast(140%) brightness(1.2); }
+  70%  { transform: translate(-2px, -5px) skew(1deg); }
+  80%  { transform: translate(2px, 5px) skew(-2deg); }
+  90%  { transform: translate(0px, 0px) skew(0deg); }
+  100% { transform: translate(0, 0) skew(0deg); filter: url(#tv-glitch-advanced) grayscale(30%) contrast(160%); }
 }
 
 .tv-effect {
-    filter: url(#tv-glitch) grayscale(80%) contrast(200%) brightness(1.2);
-    animation: tv-jitter 0.15s infinite;
+    /* Apply the chaotic jumping animation */
+    animation: severe-jitter 0.3s infinite alternate;
+}
+
+/* Shadertoy's 'interlace' (Scanlines) overlay */
+.tv-effect::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: 
+        /* Horizontal black scanlines */
+        linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.3) 50%), 
+        /* Vertical subtle RGB phosphor dots */
+        linear-gradient(90deg, rgba(255, 0, 0, 0.05), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.05));
+    background-size: 100% 4px, 3px 100%;
+    pointer-events: none;
+    z-index: 1000;
+    mix-blend-mode: overlay;
 }
 
 #ui_canvas {

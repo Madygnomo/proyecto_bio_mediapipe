@@ -16,11 +16,13 @@ let runningMode = "VIDEO";
 let webcamRunning = false;
 let isPurpleEffectActive = false; 
 let isTvEffectActive = false;     
-let isVhsEffectActive = false;    
+let isVhsEffectActive = false;
+let isAggressiveContrastEffectActive = false;    
 let lastClickTime = 0;
 
-const baseDocumentText = "This Indenture made the thirteenth day of December One Thousand and eight hundred and thirty eight... system error detected... network breached.";
+const baseDocumentText = "Don't touch anything!";
 let currentTextMode = 'normal';
+
 
 document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('document-text').textContent = baseDocumentText;
@@ -67,7 +69,7 @@ const interactiveButtons = [
     width: 75,
     height: 75,
     image: './assets/OJO.png', // Asegúrate de tener este asset
-    action: 'TOGGLE_PURPLE_EFFECT' // Eye handles Purple
+    action:'TOGGLE_AGGRESSIVE_CONTRAST_EFFECT' // Eye handles Purple
   },
   { // BOTON CORAZON
     id: 'boton2',
@@ -77,7 +79,7 @@ const interactiveButtons = [
     height: 80,
     image: './assets/boton2.png', // Asegúrate de tener este asset
     action: 'TOGGLE_TV_EFFECT' // Heart handles TV Glitch
-  }
+  },
 ];
 
 // Precargar imágenes de los botones
@@ -427,6 +429,7 @@ function handleInteraction(action) {
   const gnome = document.getElementById('gnome-img');
   const gato = document.getElementById('gato-img');
   const byte = document.getElementById('byte-img');
+  const wrapper = document.getElementById('video-effects-wrapper');
 
   const resetEffects = () => {
       if (gnome) gnome.style.display = 'none';
@@ -436,7 +439,14 @@ function handleInteraction(action) {
       if (contentText) contentText.textContent = baseDocumentText;
   };
 
-  const wrapper = document.getElementById('video-effects-wrapper');
+  const clearAllVideoEffects = () => {
+    if (wrapper) {
+      wrapper.className = 'effects-wrapper'; // Restablecer a la clase base
+    }
+    isAggressiveContrastEffectActive = false; // NUEVO reinicio de estado
+    isTvEffectActive = false;
+    isVhsEffectActive = false;
+  };
 
   if (action === 'ACTIVATE_LOOP') {
     const loopImg = document.getElementById('loop-asset');
@@ -451,23 +461,25 @@ function handleInteraction(action) {
           clearAllVideoEffects(); 
       } else { 
           clearAllVideoEffects(); 
-          if (wrapper) wrapper.classList.add('vhs-effect'); 
+          wrapper.classList.add('vhs-effect'); 
           isVhsEffectActive = true; 
       }
-  } else if (action === 'TOGGLE_PURPLE_EFFECT') {
-      if (isPurpleEffectActive) { 
+  } 
+  else if (action === 'TOGGLE_AGGRESSIVE_CONTRAST_EFFECT') { // NUEVO enrutamiento
+      if (isAggressiveContrastEffectActive) { 
           clearAllVideoEffects(); 
       } else { 
           clearAllVideoEffects(); 
-          if (wrapper) wrapper.classList.add('purple-effect'); 
-          isPurpleEffectActive = true; 
+          wrapper.classList.add('aggressive-contrast-effect'); 
+          isAggressiveContrastEffectActive = true; 
       }
-  } else if (action === 'TOGGLE_TV_EFFECT') {
+  } 
+  else if (action === 'TOGGLE_TV_EFFECT') {
       if (isTvEffectActive) { 
           clearAllVideoEffects(); 
       } else { 
           clearAllVideoEffects(); 
-          if (wrapper) wrapper.classList.add('tv-effect'); 
+          wrapper.classList.add('tv-effect'); 
           isTvEffectActive = true; 
       }
   } else if (action === 'MODE_HONGO') {
